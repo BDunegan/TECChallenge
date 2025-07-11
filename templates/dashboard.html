@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mission Control - Telecommand Interface</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        
+        .header h1 {
+            color: #4fc3f7;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #b0b0b0;
+            font-size: 1.1em;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        
+        .status-ready { background-color: #ffa726; }
+        .status-transmitted { background-color: #42a5f5; }
+        .status-acknowledged { background-color: #ab47bc; }
+        .status-executed { background-color: #66bb6a; }
+        .status-failed { background-color: #ef5350; }
+        .status-cancelled { background-color: #78909c; }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .panel {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .panel h2 {
+            color: #4fc3f7;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #b0b0b0;
+            font-weight: 500;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-size: 14px;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #4fc3f7;
+            box-shadow: 0 0 0 2px rgba(79, 195, 247, 0.2);
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: #4fc3f7;
+            color: #000;
+        }
+        
+        .btn-primary:hover {
+            background: #29b6f6;
+            transform: translateY(-1px);
+        }
+        
+        .btn-danger {
+            background: #ef5350;
+            color: #fff;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        
+        .btn-danger:hover {
+            background: #e53935;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .commands-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        .commands-table th, .commands-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+        
+        .commands-table th {
+            background: #2a2a2a;
+            color: #4fc3f7;
+            font-weight: 600;
+        }
+        
+        .commands-table tbody tr:hover {
+            background: #2a2a2a;
+        }
+        
+        .command-id {
+            font-family: monospace;
+            color: #ab47bc;
+            font-size: 12px;
+        }
+        
+        .refresh-info {
+            text-align: center;
+            margin-top: 10px;
+            color: #666;
+            font-size: 12px;
+        }
+        
+        .no-commands {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🛰️ Mission Control</h1>
+            <p>Telecommand Interface - Send and monitor spacecraft commands</p>
+        </div>
+        
+        <div class="grid">
+            <!-- Command Status Panel -->
+            <div class="panel">
+                <h2>📡 Active Telecommands</h2>
+                <div id="commands-container">
+                    <div class="no-commands">Loading commands...</div>
+                </div>
+                <div class="refresh-info">
+                    Auto-refreshing every 3 seconds | Last updated: <span id="last-update">--</span>
+                </div>
+            </div>
+            
+            <!-- Create Command Panel -->
+            <div class="panel">
+                <h2>🚀 Send New Command</h2>
+                <form id="command-form">
+                    <div class="form-group">
+                        <label for="command_name">Command Type</label>
+                        <select id="command_name" name="command_name" required>
+                            <option value="">Select Command</option>
+                            <option value="ROTATE_SOLAR_PANELS">Rotate Solar Panels</option>
+                            <option value="START_ENGINE_BURN">Start Engine Burn</option>
+                            <option value="TAKE_PHOTO">Take Photo</option>
+                            <option value="ADJUST_ORBIT">Adjust Orbit</option>
+                            <option value="DEPLOY_ANTENNA">Deploy Antenna</option>
+                            <option value="SYSTEM_REBOOT">System Reboot</option>
+                            <option value="CUSTOM">Custom Command</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group" id="custom-command-group" style="display: none;">
+                        <label for="custom_command">Custom Command Name</label>
+                        <input type="text" id="custom_command" name="custom_command" placeholder="Enter custom command name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="parameters">Parameters (JSON)</label>
+                        <textarea id="parameters" name="parameters" rows="3" placeholder='{"angle": 45, "speed": "slow"}'>{}</textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="priority">Priority</label>
+                        <select id="priority" name="priority">
+                            <option value="1">1 - Critical</option>
+                            <option value="2">2 - High</option>
+                            <option value="3">3 - Medium-High</option>
+                            <option value="4">4 - Medium</option>
+                            <option value="5" selected>5 - Normal</option>
+                            <option value="6">6 - Low</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="description">Description (Optional)</label>
+                        <input type="text" id="description" name="description" placeholder="Brief description of the command">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        📤 Send Command
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Auto-refresh commands every 3 seconds
+        let autoRefresh;
+        
+        // Load commands on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadCommands();
+            startAutoRefresh();
+            setupForm();
+        });
+        
+        function loadCommands() {
+            fetch('/api/telecommands')
+                .then(response => response.json())
+                .then(commands => {
+                    displayCommands(commands);
+                    document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+                })
+                .catch(error => {
+                    console.error('Error loading commands:', error);
+                    document.getElementById('commands-container').innerHTML = 
+                        '<div class="no-commands">Error loading commands</div>';
+                });
+        }
+        
+        function displayCommands(commands) {
+            const container = document.getElementById('commands-container');
+            
+            if (commands.length === 0) {
+                container.innerHTML = '<div class="no-commands">No commands found. Send your first command!</div>';
+                return;
+            }
+            
+            let html = `
+                <table class="commands-table">
+                    <thead>
+                        <tr>
+                            <th>Command</th>
+                            <th>Status</th>
+                            <th>Priority</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            commands.forEach(cmd => {
+                const statusClass = `status-${cmd.status.toLowerCase().replace(' ', '-')}`;
+                const createdTime = new Date(cmd.created_at).toLocaleTimeString();
+                const canCancel = cmd.status === 'Ready';
+                
+                html += `
+                    <tr>
+                        <td>
+                            <strong>${cmd.command_name}</strong><br>
+                            <span class="command-id">${cmd.id}</span>
+                        </td>
+                        <td>
+                            <span class="status-indicator ${statusClass}"></span>
+                            ${cmd.status}
+                        </td>
+                        <td>${cmd.priority}</td>
+                        <td>${createdTime}</td>
+                        <td>
+                            ${canCancel ? 
+                                `<button onclick="cancelCommand('${cmd.id}')" class="btn btn-danger">Cancel</button>` : 
+                                '<span style="color: #666;">--</span>'
+                            }
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        function cancelCommand(commandId) {
+            if (confirm('Are you sure you want to cancel this command?')) {
+                fetch(`/api/telecommands/${commandId}/cancel`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.message) {
+                        loadCommands(); // Refresh the list
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error cancelling command:', error);
+                    alert('Error cancelling command');
+                });
+            }
+        }
+        
+        function setupForm() {
+            const form = document.getElementById('command-form');
+            const commandSelect = document.getElementById('command_name');
+            const customGroup = document.getElementById('custom-command-group');
+            
+            // Show/hide custom command input
+            commandSelect.addEventListener('change', function() {
+                if (this.value === 'CUSTOM') {
+                    customGroup.style.display = 'block';
+                    document.getElementById('custom_command').required = true;
+                } else {
+                    customGroup.style.display = 'none';
+                    document.getElementById('custom_command').required = false;
+                }
+            });
+            
+            // Handle form submission
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(form);
+                const commandName = formData.get('command_name') === 'CUSTOM' ? 
+                    formData.get('custom_command') : formData.get('command_name');
+                
+                let parameters;
+                try {
+                    parameters = JSON.parse(formData.get('parameters') || '{}');
+                } catch (e) {
+                    alert('Invalid JSON in parameters field');
+                    return;
+                }
+                
+                const payload = {
+                    command_name: commandName,
+                    parameters: parameters,
+                    priority: parseInt(formData.get('priority')),
+                    description: formData.get('description'),
+                    operator_id: 'web_operator'
+                };
+                
+                fetch('/api/telecommands', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.id) {
+                        // Success - reset form and reload commands
+                        form.reset();
+                        document.getElementById('parameters').value = '{}';
+                        loadCommands();
+                        alert('Command sent successfully!');
+                    } else {
+                        alert('Error: ' + result.error);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error sending command:', error);
+                    alert('Error sending command');
+                });
+            });
+        }
+        
+        function startAutoRefresh() {
+            autoRefresh = setInterval(loadCommands, 3000); // Refresh every 3 seconds
+        }
+        
+        // Stop auto-refresh when page is hidden to save resources
+        document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+                clearInterval(autoRefresh);
+            } else {
+                startAutoRefresh();
+            }
+        });
+    </script>
+</body>
+</html>
