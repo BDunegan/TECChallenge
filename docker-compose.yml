@@ -1,0 +1,76 @@
+services:
+  # Spacecraft Simulator Service (Ground Station Interface)
+  spacecraft:
+    build: 
+      context: ./spacecraft
+      dockerfile: Dockerfile
+    container_name: mission-spacecraft
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - mission-network
+
+  ground:
+    build:
+      context: ./ground
+      dockerfile: Dockerfile
+    container_name: mission-ground
+    ports:
+      - "5000:5000"
+    volumes:
+      - shared_db:/shared
+    environment:
+      - PORT=5000
+      - DATABASE_URL=sqlite:////shared/TECChallenge.db
+    depends_on:
+      spacecraft:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:5000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    networks:
+      - mission-network
+
+  # Command Sender Service (Background Processor)
+  command-sender:
+    build:
+      context: ./command-sender
+      dockerfile: Dockerfile
+    container_name: mission-command-sender
+    volumes:
+      - shared_db:/shared  # SAME shared database volume
+    environment:
+      - DATABASE_URL=sqlite:////shared/TECChallenge.db  # SAME database path
+      - SPACECRAFT_URL=http://spacecraft:8080/commands
+      - POLL_INTERVAL=5
+    depends_on:
+      ground:
+        condition: service_healthy
+      spacecraft:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - mission-network
+
+# Shared volume for database-mediated communication
+volumes:
+  shared_db:
+    driver: local
+
+# Network for service communication
+networks:
+  mission-network:
+    driver: bridge

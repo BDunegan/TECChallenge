@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mission Control - Telecommand Interface</title>
+    <title>GROUND - Telecommand Interface</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
@@ -189,6 +189,10 @@
             }
         }
     </style>
+
+
+<!-- While I do recognize that python is required for the project, we can remove the web app frontend and have only python but this forces only command line interaction -->
+<!-- Because the entire main structure of the project is python (using the Flask framework), javascript templating for a cohesive front end seemed appropriate -->
 </head>
 <body>
     <div class="container">
@@ -200,7 +204,7 @@
         <div class="grid">
             <!-- Command Status Panel -->
             <div class="panel">
-                <h2>📡 Active Telecommands</h2>
+                <h2>Active Telecommands</h2>
                 <div id="commands-container">
                     <div class="no-commands">Loading commands...</div>
                 </div>
@@ -211,51 +215,17 @@
             
             <!-- Create Command Panel -->
             <div class="panel">
-                <h2>🚀 Send New Command</h2>
+                <h2>Send New Command</h2>
                 <form id="command-form">
                     <div class="form-group">
-                        <label for="command_name">Command Type</label>
-                        <select id="command_name" name="command_name" required>
-                            <option value="">Select Command</option>
-                            <option value="ROTATE_SOLAR_PANELS">Rotate Solar Panels</option>
-                            <option value="START_ENGINE_BURN">Start Engine Burn</option>
-                            <option value="TAKE_PHOTO">Take Photo</option>
-                            <option value="ADJUST_ORBIT">Adjust Orbit</option>
-                            <option value="DEPLOY_ANTENNA">Deploy Antenna</option>
-                            <option value="SYSTEM_REBOOT">System Reboot</option>
-                            <option value="CUSTOM">Custom Command</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group" id="custom-command-group" style="display: none;">
-                        <label for="custom_command">Custom Command Name</label>
-                        <input type="text" id="custom_command" name="custom_command" placeholder="Enter custom command name">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="parameters">Parameters (JSON)</label>
-                        <textarea id="parameters" name="parameters" rows="3" placeholder='{"angle": 45, "speed": "slow"}'>{}</textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="priority">Priority</label>
-                        <select id="priority" name="priority">
-                            <option value="1">1 - Critical</option>
-                            <option value="2">2 - High</option>
-                            <option value="3">3 - Medium-High</option>
-                            <option value="4">4 - Medium</option>
-                            <option value="5" selected>5 - Normal</option>
-                            <option value="6">6 - Low</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="description">Description (Optional)</label>
-                        <input type="text" id="description" name="description" placeholder="Brief description of the command">
+                        <label for="command_name">Command Name</label>
+                        <input type="text" id="command_name" name="command_name" 
+                               placeholder="Enter command name (e.g., ROTATE_SOLAR_PANELS)" 
+                               required>
                     </div>
                     
                     <button type="submit" class="btn btn-primary" style="width: 100%;">
-                        📤 Send Command
+                        Send Telecommand
                     </button>
                 </form>
             </div>
@@ -263,16 +233,17 @@
     </div>
 
     <script>
-        // Auto-refresh commands every 3 seconds
+        // Auto-refresh to see updates to the shared database every 3 seconds. This is likely not nessisary in reality but is useful for demo purposes.
         let autoRefresh;
         
-        // Load commands on page load
+        // Load command list on page load
         document.addEventListener('DOMContentLoaded', function() {
             loadCommands();
             startAutoRefresh();
             setupForm();
         });
         
+        // allows us to see the full list of commands and for this to be displayed on the web interface
         function loadCommands() {
             fetch('/api/telecommands')
                 .then(response => response.json())
@@ -287,6 +258,7 @@
                 });
         }
         
+        // A helper function of the loadCommands() function to style and display the commands fetched from the /api/telecommands route
         function displayCommands(commands) {
             const container = document.getElementById('commands-container');
             
@@ -301,8 +273,6 @@
                         <tr>
                             <th>Command</th>
                             <th>Status</th>
-                            <th>Priority</th>
-                            <th>Created</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -324,8 +294,6 @@
                             <span class="status-indicator ${statusClass}"></span>
                             ${cmd.status}
                         </td>
-                        <td>${cmd.priority}</td>
-                        <td>${createdTime}</td>
                         <td>
                             ${canCancel ? 
                                 `<button onclick="cancelCommand('${cmd.id}')" class="btn btn-danger">Cancel</button>` : 
@@ -340,6 +308,7 @@
             container.innerHTML = html;
         }
         
+        // Allows access to the cancel feature inside the web app
         function cancelCommand(commandId) {
             if (confirm('Are you sure you want to cancel this command?')) {
                 fetch(`/api/telecommands/${commandId}/cancel`, {
@@ -384,20 +353,9 @@
                 const commandName = formData.get('command_name') === 'CUSTOM' ? 
                     formData.get('custom_command') : formData.get('command_name');
                 
-                let parameters;
-                try {
-                    parameters = JSON.parse(formData.get('parameters') || '{}');
-                } catch (e) {
-                    alert('Invalid JSON in parameters field');
-                    return;
-                }
                 
                 const payload = {
                     command_name: commandName,
-                    parameters: parameters,
-                    priority: parseInt(formData.get('priority')),
-                    description: formData.get('description'),
-                    operator_id: 'web_operator'
                 };
                 
                 fetch('/api/telecommands', {
@@ -412,7 +370,6 @@
                     if (result.id) {
                         // Success - reset form and reload commands
                         form.reset();
-                        document.getElementById('parameters').value = '{}';
                         loadCommands();
                         alert('Command sent successfully!');
                     } else {
@@ -426,6 +383,7 @@
             });
         }
         
+        // allows for refresh functionality
         function startAutoRefresh() {
             autoRefresh = setInterval(loadCommands, 3000); // Refresh every 3 seconds
         }

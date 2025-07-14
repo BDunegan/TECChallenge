@@ -1,0 +1,5 @@
+# API Service Dependencies
+Flask==2.3.3 # To run web app
+Flask-SQLAlchemy==3.0.5 # To run database
+requests==2.31.0 # To make JSON requests
+SQLAlchemy==2.0.21 # To run database
