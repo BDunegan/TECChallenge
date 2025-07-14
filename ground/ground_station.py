@@ -97,7 +97,7 @@ def get_telecommand(command_id):
     return jsonify(telecommand.to_dict())
 
 # Cancel queued telecommands (only in "Ready" state)
-@app.route("/api/telecommands/<command_id>/cancel", methods=["DELETE"])
+@app.route("/api/telecommands/<command_id>/cancel", methods=["PUT"])
 def cancel_telecommand(command_id):
     """Cancel telecommand if in Ready state"""
     telecommand = Telecommand.query.get(command_id)
