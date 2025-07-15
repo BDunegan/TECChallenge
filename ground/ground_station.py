@@ -7,9 +7,7 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for # 
 import time # allows us to attach timestamps to telecommands
 import sys # Allows manipulation of system process
 import os # Allows relative file pathing (useful for operating inside Docker containers)
-
-# Add shared directory to path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'shared'))
+from shared.models import db, Telecommand, TelecommandStatus
 
 # I chose to use Flask as opposed to fastAPI because it allows for a lightweight microservice while also leveraging the full python toolkit
 # I was not as focused on the frontend design (which is my main hesitation with flask) so it seemed a logical choice.
@@ -19,9 +17,6 @@ app = Flask(__name__)
 database_url = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# The imports for models must come after the path append or it will not be recognized
-from models import db, Telecommand, TelecommandStatus
 
 # Initialize database in ground. I chose to initialize the DB here instead of in command_sender because it is less dependent on external health for the docker build
 # I.E. if command_sender fails to load, the DB could be partially loaded and cause data corruption. Ground has less dependency.

@@ -2,8 +2,8 @@ services:
   # Spacecraft Simulator Service (Ground Station Interface)
   spacecraft:
     build: 
-      context: ./spacecraft
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: spacecraft/Dockerfile
     container_name: mission-spacecraft
     ports:
       - "8080:8080"
@@ -21,8 +21,8 @@ services:
 
   ground:
     build:
-      context: ./ground
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ground/Dockerfile
     container_name: mission-ground
     ports:
       - "5000:5000"
@@ -47,8 +47,8 @@ services:
   # Command Sender Service (Background Processor)
   command-sender:
     build:
-      context: ./command-sender
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: command-sender/Dockerfile
     container_name: mission-command-sender
     volumes:
       - shared_db:/shared  # SAME shared database volume

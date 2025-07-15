@@ -13,8 +13,8 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY ground_station.py .
-COPY templates/ templates/
+COPY ground/ground_station.py .
+COPY ground/templates/ templates/
 COPY shared/ shared/
 
 # Create shared directory for database with proper permissions

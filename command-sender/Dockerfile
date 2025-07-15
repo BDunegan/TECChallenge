@@ -12,7 +12,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
-COPY command_sender.py .
+COPY command-sender/command_sender.py .
 COPY shared/ shared/
 
 # Create shared directory for database access

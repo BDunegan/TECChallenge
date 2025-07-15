@@ -5,11 +5,7 @@ import json
 import sys
 import os
 from datetime import datetime
-
-# Add shared directory to path
-sys.path.append(os.path.join(os.path.dirname(__file__), 'shared'))
-# The imports from shared/models must come after the sys.path.append to be recognized.
-from models import db, Telecommand, TelecommandStatus
+from shared.models import db, Telecommand, TelecommandStatus
 
 # Again we use a Flask framework
 from flask import Flask
