@@ -67,13 +67,8 @@ Ground -> Reads live updated status from database for web interface
 
 NOTE: All communication is HTTP or database-mediated
 
-┌─────────────┐    Database    ┌─────────────────┐    HTTP    ┌─────────────┐
-│   GROUND    │◄──────────────►│ COMMAND-SENDER  │───────────►│ SPACECRAFT  │
-│  (port 5000)│  (SQLite File) │  (background)   │ (commands) │ (port 8080) │
-└─────────────┘                └─────────────────┘            └─────────────┘
-
 ### Justifications
-All six of the Telecommand states (Ready, Transmitted, Acknowledged, Executed, Failed, Cancelled) are hard coded into a models.py file as a class object. This models.py is redundantly placed in each microservice file. This redundancy I felt was better than abstracting it into a shared python package (which was a considered alternative) because of its use in spaceflight and the separation of the services caused by this use case (spacecraft tend to be pretty far away). It did not seem appropriate or realistic to assume ANY shared communication between any of the microservices other than in the cases of database-mediated communication between the ground_station microservice and the command_sender and the HTTP communication between command_sender and spacecraft. While I recognize this is a bit at conflict with using any imports, I attempted to stay in what I felt was the spirit of the project and all imports are packaged into the Docker image build.
+All six of the Telecommand states (Ready, Transmitted, Acknowledged, Executed, Failed, Cancelled) are hard coded into a models.py file as a class object called TelecommandStatus. This models.py is placed in the root of the project and is imported as a python package by both the ground and command-sender microservices/containers. Additionally, models.py provides the Telecommand class.
 
 The requirement for the RESTful API (standard use of HTTP methods) mission operator telecommand interface is fulfilled by the ground_station microservice. 
 	-New Telecommand: A POST endpoint is provided in api/telecommands under the create_telecommand() function, which expects a JSON payload containing the command_name field (captured from the user in the web interface in this project). This fulfills the acceptance of new telecommands requirement.
@@ -96,24 +91,18 @@ The requirements for the command sender microservice are met as follows:
 	command-sender/
 		Dockerfile
 		requirements.txt
-		shared/
-			init.py
-			models.py
 		command_sender.py
 	ground/
 		Dockerfile
 		requirements.txt
-		shared/
-			init.py
-			models.py
 		ground_station.py
 	spacecraft/
 		Dockerfile
 		requirements.txt
-		shared/
-			init.py
-			models.py
 		spacecraft.py
+  	shared/
+		init.py
+		models.py
 
 ### URL Routes
 	GROUND
@@ -144,3 +133,13 @@ The requirements for the command sender microservice are met as follows:
 		/
 		/health
 		/commands
+
+  	MODELS
+   		TelecommandStatus
+     		Telecommand
+       			can_be_cancelled()
+	  			Checks if a command (self in OOP) has the READY status
+	  		cancel()
+     				Sets a specific command (self) to the CANCELLED status
+     			to_dict()
+				converts a specific Telecommand model record to a dictionary for JSON transmission
