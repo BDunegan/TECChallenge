@@ -16,7 +16,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), 'shared'))
 app = Flask(__name__)
 
 # Database configuration uses environment variable for shared database
-database_url = os.environ.get('DATABASE_URL', 'sqlite:////shared/TECChallenge.db')
+database_url = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -32,18 +32,6 @@ db.init_app(app)
 def dashboard():
     """Main Mission Control dashboard"""
     return render_template('dashboard.html')
-
-# This route allows for the cancelation of a command using its uuid as a dynamic URL.
-@app.route("/web/cancel/<command_id>", methods=["POST"])
-def web_cancel_command(command_id):
-    """Web interface route to cancel command based on dynamic UUID4"""
-    telecommand = Telecommand.query.get(command_id)
-    
-    if telecommand and telecommand.cancel():
-        db.session.commit()
-        print(f"GROUND: Cancelled telecommand {telecommand.command_name} [{telecommand.id}] in TECChallenge.db database")
-    
-    return redirect(url_for('dashboard'))
 
 # Checks for the health of the ground station microservice. This is used by the docker healthcheck and others to monitor status.
 # Knowing the health of the ground microservice is crucial. If the ground goes down, no commands can be sent to the telemetry microservice.

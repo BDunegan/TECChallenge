@@ -18,7 +18,7 @@ from flask import Flask
 app = Flask(__name__)
 
 # Database configuration - use environment variable for shared database
-database_url = os.environ.get('DATABASE_URL', 'sqlite:////shared/mission_control.db')
+database_url = os.environ.get('DATABASE_URL')
 app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
@@ -167,8 +167,7 @@ class CommandSender:
             self.update_command_status(command_id, TelecommandStatus.EXECUTED)
             print(f"SENDER: Command {command_id} -> EXECUTED")
         else:
-            self.update_command_status(command_id, TelecommandStatus.FAILED, 
-                                     "Command execution failed on spacecraft (INTENTIONAL)")
+            self.update_command_status(command_id, TelecommandStatus.FAILED)
             print(f"SENDER: Command {command_id} -> FAILED")
         
         print(f"SENDER: Command {command_id} processing complete!")
